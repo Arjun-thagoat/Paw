@@ -1850,15 +1850,18 @@ const calculateCareCost = (item, stocks, pet, cash, insurance) => {
   };
   
   let cost = baseCosts[item];
+  if (cost === undefined) {
+    return 0;
+  }
   
   // If you own food company stock, food is cheaper
-  if (item.includes('food') && foodStock.owned > 0) {
+  if (item.includes('food') && foodStock && foodStock.owned > 0) {
     // 20% discount rewards vertical integration strategy
     cost *= 0.8;
   }
   
   // If you own vet stock, healthcare is cheaper
-  if (item.includes('vet') && vetStock.owned > 0) {
+  if (item.includes('vet') && vetStock && vetStock.owned > 0) {
     // 15% discount keeps vet care meaningful but incentivizes VCS ownership
     cost *= 0.85;
   }
@@ -2256,11 +2259,17 @@ export default function PawStreet() {
 
   // Handle game start with custom pet
   const handleGameStart = (petName, petBreed, petPersonality, gameLength) => {
+    const breed = PET_BREEDS[petBreed];
+    const personality = PET_PERSONALITIES[petPersonality];
+    if (!breed || !personality) {
+      addLog(`Invalid pet configuration: breed=${petBreed}, personality=${petPersonality}`, "error");
+      return;
+    }
     const initialState = createGameState(gameLength);
     initialState.pet = createPet(petName, petBreed, petPersonality);
     setGameState(initialState);
     setGameStarted(true);
-    addLog(`Welcome ${petName} the ${PET_BREEDS[petBreed].name} (${PET_PERSONALITIES[petPersonality].emoji} ${PET_PERSONALITIES[petPersonality].name})! 🎉`, "system");
+    addLog(`Welcome ${petName} the ${breed.name} (${personality.emoji} ${personality.name})! 🎉`, "system");
     addLog(`Program length set to ${gameLength} days`, "system");
   };
 
@@ -2923,6 +2932,9 @@ export default function PawStreet() {
         setCurrentMinigame(randomGame);
         setShowMinigame(true);
         return; // Don't apply effects yet
+      default:
+        addLog(`Unknown care item: ${item}`, "error");
+        return;
     }
 
     if (taskId && overuseCount > 0) {
@@ -3014,6 +3026,11 @@ export default function PawStreet() {
   const buyRoomItem = (itemKey) => {
     const item = ROOM_ITEMS[itemKey];
     
+    if (!item) {
+      addLog(`Unknown room item: ${itemKey}`, "error");
+      return;
+    }
+    
     if (gameState.pet.roomItems.includes(itemKey)) {
       addLog(`You already own ${item.name}!`, "error");
       return;
@@ -3034,7 +3051,11 @@ export default function PawStreet() {
 
   const trainSkill = (skillKey) => {
     const skill = COACHING_SKILLS[skillKey];
-    const currentLevel = gameState.pet.skills[skillKey];
+    if (!skill) {
+      addLog(`Unknown skill: ${skillKey}`, "error");
+      return;
+    }
+    const currentLevel = gameState.pet.skills[skillKey] || 0;
     
     if (currentLevel >= skill.maxLevel) {
       addLog(`${skill.name} is already at max level!`, "error");
@@ -3124,11 +3145,13 @@ export default function PawStreet() {
     let newState = { ...gameState };
     let newPet = { ...newState.pet };
     
-    Object.entries(request.declineEffect).forEach(([stat, value]) => {
-      if (stat === 'happiness') newPet.happiness = Math.max(0, newPet.happiness + value);
-      if (stat === 'trust') newPet.trust = Math.max(0, newPet.trust + value);
-      if (stat === 'stress') newPet.stress = Math.min(100, newPet.stress + value);
-    });
+    if (request.declineEffect) {
+      Object.entries(request.declineEffect).forEach(([stat, value]) => {
+        if (stat === 'happiness') newPet.happiness = Math.max(0, newPet.happiness + value);
+        if (stat === 'trust') newPet.trust = Math.max(0, newPet.trust + value);
+        if (stat === 'stress') newPet.stress = Math.min(100, newPet.stress + value);
+      });
+    }
     
     newPet.currentRequest = null;
     newState.pet = newPet;
@@ -3175,6 +3198,9 @@ export default function PawStreet() {
         );
         newState.cash += dividend;
         addLog(`💰 Dividend received: $${dividend.toFixed(0)}`, "market");
+        break;
+      default:
+        addLog(`Unknown wheel event effect: ${event.effect}`, "error");
         break;
     }
     
@@ -3505,7 +3531,7 @@ export default function PawStreet() {
               }
             }
           } catch (error) {
-            // Silently fail if badge check errors
+            addLog(`Badge check failed for ${badge.id}: ${error.message}`, "error");
           }
         }
       });
