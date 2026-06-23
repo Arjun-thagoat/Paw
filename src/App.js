@@ -120,6 +120,20 @@ const Menu = ({ size = 24 }) => (
   </svg>
 );
 
+const EvolutionIcon = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path>
+    <circle cx="12" cy="12" r="3"></circle>
+  </svg>
+);
+
+const ShieldStar = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+    <path d="M12 8l1.12 2.27 2.5.36-1.81 1.76.43 2.49L12 13.77l-2.24 1.18.43-2.49-1.81-1.76 2.5-.36z"></path>
+  </svg>
+);
+
 // ============================================================================
 // SICKNESS SYSTEM
 // ============================================================================
@@ -797,6 +811,258 @@ const getPetSpriteFrames = (breed) => {
   return _spriteUrlCache[key];
 };
 
+// ============================================================================
+// GREYSCALE SPRITE RENDERER (for evolution preview)
+// ============================================================================
+const GREYSCALE_PALETTE = { ".": null, K: "#1b1b1b", E: "#1b1b1b", W: "#e0e0e0", N: "#a0a0a0", A: "#808080", B: "#b0b0b0", C: "#606060" };
+
+const _greyUrlCache = {};
+const getGreyscaleSpriteFrame = (breed, frameIdx = 0) => {
+  const data = PET_SPRITES[breed] || PET_SPRITES.cat;
+  const key = `${breed}_grey_${frameIdx}`;
+  if (!_greyUrlCache[key]) {
+    _greyUrlCache[key] = spriteFrameToDataUrl(data.frames[frameIdx] || data.frames[0], GREYSCALE_PALETTE);
+  }
+  return _greyUrlCache[key];
+};
+
+// ============================================================================
+// EVOLUTION PATHS — 3 unique stages per breed
+// ============================================================================
+// Each breed has 3 evolution stages unlocked by meeting stat thresholds.
+// Stage sprites use a modified pixel grid unique to that evolution.
+// Abilities grant passive stat boosts once unlocked.
+
+const EVOLUTION_PATHS = {
+  cat: [
+    {
+      stage: 1, name: "Shadow Kitten", emoji: "🐱",
+      description: "A nimble kitten learning the ropes of the market.",
+      ability: { name: "Quick Reflexes", desc: "+5% stress reduction per day", stat: "stress", value: -5 },
+      requirements: { day: 7, health: 60, trust: 40 },
+      sprite: ["................", "....KKK..KKK....", "...KKAAK.KAAKK..", "...KACAK.KACAK..", "...KAAAKKKKAAAK..", "...KKKKAAAKKKKK..", "...KAAAAAAAAAAAK.", "...KAAAAAAAAAK...", "...KAAEAAAEAAK...", "...KAAABBBBAAK...", "..KKABBNNBBAKK..", "...KKABBBBAKK...", "....KKAAAAKK....", "......KKKKKK....", "................", "................"]
+    },
+    {
+      stage: 2, name: "Mystic Prowler", emoji: "🐈‍⬛",
+      description: "A keen-eyed feline with market intuition.",
+      ability: { name: "Market Whiskers", desc: "+10 financial awareness cap", stat: "financialAwareness", value: 10 },
+      requirements: { day: 21, health: 70, trust: 60, happiness: 60 },
+      sprite: ["...KKK....KKK...", "..KKCCK..KCCKK..", "..KACCK..KCAAK..", "..KAAAKKKKAAAK..", "..KKKKAAAAKKKK..", ".KKAAAAAAAAAAAKK", ".KAAAAAAAAAAAAK.", ".KAAAAAAAAAAAAK.", ".KAAEAAAAAEAAK..", ".KAAABBBBBBAAAK.", "KKABBNNBBNNBBAKK", ".KKABBBBBBBAKKK.", "..KKKAAAAAAKKK..", "....KKKKKKKK....", "................", "................"]
+    },
+    {
+      stage: 3, name: "Celestial Lynx", emoji: "✨🐱",
+      description: "A legendary feline spirit radiating wisdom and grace.",
+      ability: { name: "Nine Lives", desc: "Health cannot drop below 15", stat: "health", value: 15 },
+      requirements: { day: 45, health: 80, trust: 80, happiness: 70, ethicsScore: 50 },
+      sprite: ["..WKK......KKW..", "..KWKK....KKWK..", "..KKACK..KCAKK..", "..KAAAKKKKAAAK..", "..KKKKAAAAKKKK..", "WKKAAAAAAAAAAAKKW", ".KAAAWAAAAWAAAK.", ".KAAAAAAAAAAAAK.", ".KAAEAAAAAEAAK..", ".KAAABBBBBBAAAK.", "KKAWBBNNBBWWBAKK", ".KKABBBBBBBAKKK.", "..KKKAAAAAAKKK..", "...WKKKKKKKW....", "................", "................"]
+    }
+  ],
+  dog: [
+    {
+      stage: 1, name: "Loyal Pup", emoji: "🐕",
+      description: "A faithful puppy always eager to please.",
+      ability: { name: "Loyal Heart", desc: "+5 trust per care action", stat: "trust", value: 5 },
+      requirements: { day: 7, health: 60, trust: 40 },
+      sprite: ["................", "................", "................", ".....KKKKKK.....", "KKKKKKAAAAAKKKKKK", "KCCCAAAAAAAAACCCK", "KCCCAAAAAAAAACCCK", "KCCAAAAAAAAAAACCK", "KCCAAEBAABEAACCK.", "KCCAABBBBBBACCCK.", "KCCCABBEEBBACCCK.", "KCCCABBEEBBACCKK.", "KKKKKKAKKAKKKKK..", ".....KKKKKK.....", "................", "................"]
+    },
+    {
+      stage: 2, name: "Guardian Hound", emoji: "🦮",
+      description: "A protective companion who senses market danger.",
+      ability: { name: "Danger Sense", desc: "Warns 1 day before crashes", stat: "special", value: 0 },
+      requirements: { day: 21, health: 70, trust: 60, happiness: 60 },
+      sprite: ["................", "................", ".....KKKKKK.....", "KKKKKKAAAAKKKKKK", "KCCCCAAAAAAAACCCK", "KCCCCAAAAAAAACCCK", "KCCAAAAAAAAAAAACK", "KCCAAAAAAAAAAAACK", "KCCAAEABBAAEACCK.", "KCCAABBBBBBBACCK.", "KCCCABBEEBBACCCK.", "KCCCABBEEBBACCKK.", "KKKKKKAKKAKKKKK..", "KKKKKKKKKKKKKKKK.", "................", "................"]
+    },
+    {
+      stage: 3, name: "Alpha Warden", emoji: "✨🐶",
+      description: "The ultimate protector — steadfast, wise, and unshakeable.",
+      ability: { name: "Iron Will", desc: "Stress capped at 60 max", stat: "stress", value: 60 },
+      requirements: { day: 45, health: 80, trust: 80, happiness: 70, ethicsScore: 50 },
+      sprite: ["......WWWW......", "....WWKKKKKW....", ".....KKKKKK.....", "KKKKKKAAAAKKKKKK", "KCCCCAAAAAAAACCCK", "KCCCCAAWAAWAACCCK", "KCCAAAAAAAAAAAACK", "KCCAAAAAAAAAAAACK", "KCCAAEABBAAEACCK.", "KCCAABBBBBBBACCK.", "KCCCABBEEBBACCCK.", "KCCCABBEEBBACCKK.", "KKKKKKAKKAKKKKK..", "KKKKKKKKKKKKKKKK.", "......WWWW......", "................"]
+    }
+  ],
+  rabbit: [
+    {
+      stage: 1, name: "Sprout Bunny", emoji: "🐇",
+      description: "A curious little bunny with boundless energy.",
+      ability: { name: "Spring Step", desc: "+10 energy recovery per rest", stat: "energy", value: 10 },
+      requirements: { day: 7, health: 60, trust: 40 },
+      sprite: ["....KAAKKAAK....", "....KCAKKACK....", "....KCAKKACK....", "....KCAKKACK....", "....KCAKKACK....", "....KAAKKAAK....", "...KKAAAAAAKK...", "...KAAAAAAAAK...", "..KKAAAAAAAKKK..", "..KAAEAAAAEAAK..", "..KKAABBBBAAKK..", "...KAABNNBAAK...", "...KKABBBBAKK...", "....KKKKKKKK....", "................", "................"]
+    },
+    {
+      stage: 2, name: "Meadow Sage", emoji: "🌿🐰",
+      description: "A wise rabbit attuned to ethical markets.",
+      ability: { name: "Green Thumb", desc: "+10 ethics score boost", stat: "ethics", value: 10 },
+      requirements: { day: 21, health: 70, trust: 60, happiness: 60 },
+      sprite: ["..WKKAAKKAAKW...", "....KCAKKACK....", "....KCAKKACK....", "....KCAKKACK....", "....KCAKKACK....", "....KCAKKACK....", "....KAAKKAAK....", "..WKKAAAAAAKKW..", "...KAAAAAAAAK...", "..KKAAAAAAAAKK..", "..KAAEAAAAEAAK..", "..KKAABBBBAAKK..", "...KAABNNBAAK...", "...KKABBBBAKK...", "....KKKKKKKK....", "................"]
+    },
+    {
+      stage: 3, name: "Lunar Hare", emoji: "✨🐰",
+      description: "A mythical hare blessed with fortune and serenity.",
+      ability: { name: "Moon Blessing", desc: "Happiness cannot drop below 20", stat: "happiness", value: 20 },
+      requirements: { day: 45, health: 80, trust: 80, happiness: 70, ethicsScore: 50 },
+      sprite: ["..WWKAAKKAAKWW..", "..WKKCAKKACKW...", "....KCAKKACK....", "....KCAKKACK....", "....KCAKKACK....", "....KCAKKACK....", "....KAAKKAAK....", "..WKKAAAAAAKKW..", "..WKAAAAAAAAKW..", "..KKAAAAAAAAKK..", "..KAAEAAAAEAAK..", "..KKAABBBBAAKK..", "...KAABNNBAAK...", "...KKABBBBAKK...", "....KKKKKKKK....", ".....WWWWWW....."]
+    }
+  ],
+  hamster: [
+    {
+      stage: 1, name: "Tiny Trader", emoji: "🐹",
+      description: "A small hamster hoarding treats and coins alike.",
+      ability: { name: "Cheek Stash", desc: "+$50 passive income per day", stat: "cash", value: 50 },
+      requirements: { day: 7, health: 60, trust: 40 },
+      sprite: ["................", "................", "................", "..KKKK....KKKK..", "..KAAKKKKKKAAK..", "..KAAAAAAAAAAK..", "..KKAAAAAAAAKK..", "..KAAAAAAAAAAK..", "..KAAEAAAEAAAK..", "..KAAABBBBAAAK..", "..KAABBNNBBAAK..", "..KAABBBBBBAAK..", "..KKABBBBBBAKK..", "...KKABBBBAKK...", "....KKKKKKKK....", "................"]
+    },
+    {
+      stage: 2, name: "Vault Keeper", emoji: "🔐🐹",
+      description: "A shrewd hamster who guards wealth with care.",
+      ability: { name: "Safe Haven", desc: "Lose 20% less in market crashes", stat: "special", value: 0 },
+      requirements: { day: 21, health: 70, trust: 60, happiness: 60 },
+      sprite: ["................", "................", "..KKKK....KKKK..", "..KAAKKKKKKAAK..", "..KAAKKKKKKAAK..", "..KAAAAAAAAAAK..", "..KKAAAAAAAAKK..", "..KAAAAAAAAAAK..", "..KAAEAAAEAAAK..", "..KAAABBBBAAAK..", "..KAABBNNBBAAK..", "..KAABBBBBBAAK..", "..KKABBBBBBAKK..", "...KKABBBBAKK...", "....KKKKKKKK....", "................"]
+    },
+    {
+      stage: 3, name: "Golden Cheeks", emoji: "✨🐹",
+      description: "A legendary hamster overflowing with golden fortune.",
+      ability: { name: "Midas Touch", desc: "+5% daily portfolio value", stat: "special", value: 0 },
+      requirements: { day: 45, health: 80, trust: 80, happiness: 70, ethicsScore: 50 },
+      sprite: ["......WWWW......", "....WW....WW....", "..KKKK....KKKK..", "..KAAKKKKKKAAK..", "..KAAKWWWKKAAK..", "..KAAAAAAAAAAK..", "..KKAAAAAAAAKK..", "..KAAAWAAAWAAAK.", "..KAAEAAAEAAAK..", "..KAAABBBBAAAK..", "..KAABBNNBBAAK..", "..KAABBBBBBAAK..", "..KKABBBBBBAKK..", "...KKABBBBAKK...", "....KKKKKKKK....", ".....WWWWWW....."]
+    }
+  ],
+  bird: [
+    {
+      stage: 1, name: "Fledgling", emoji: "🐤",
+      description: "A small bird learning to spread its wings.",
+      ability: { name: "Tail Wind", desc: "+5 happiness per play action", stat: "happiness", value: 5 },
+      requirements: { day: 7, health: 60, trust: 40 },
+      sprite: ["................", "......KKKK......", "......KCCK......", ".....KKCCKK.....", "....KKAAAAKK....", "...KKAAAAAAKK...", "...KAAAAAAAAK...", "..KKAEAAAAEAKK..", "..KAAAAAAAACCK..", "..KKAABNNBACCK..", "...KABBNBBBCCK..", "...KKBBBBBBKKK..", "....KBBBBBBK....", "....KKBBBBKK....", ".....KKKKKK.....", "................"]
+    },
+    {
+      stage: 2, name: "Storm Swift", emoji: "🦅",
+      description: "A swift bird that reads the winds of the market.",
+      ability: { name: "Air Current", desc: "See stock trends 1 day ahead", stat: "special", value: 0 },
+      requirements: { day: 21, health: 70, trust: 60, happiness: 60 },
+      sprite: ["................", "......KKKK......", ".....KKCCKK.....", "....KKCCCCKKK...", "...KKAAAAAAAKK..", "..KKAAAAAAAAKKK.", "..KAAAAAAAAAAAK.", ".KKAAEAAAAEAAKK.", ".KAAAAAAAAACCCK.", "..KKAABNNBACCK..", "...KABBNBBBCCK..", "...KKBBBBBBKKK..", "....KBBBBBBK....", "....KKBBBBKK....", ".....KKKKKK.....", "................"]
+    },
+    {
+      stage: 3, name: "Phoenix Ascendant", emoji: "✨🐦",
+      description: "A radiant bird reborn from market ashes.",
+      ability: { name: "Rebirth", desc: "Once per game: full health restore", stat: "special", value: 0 },
+      requirements: { day: 45, health: 80, trust: 80, happiness: 70, ethicsScore: 50 },
+      sprite: ["......WWWW......", ".....WKCCKW.....", "....WKKCCKW.....", "...WKKCCCCKKW...", "..WKKAAAAAAAKW..", "..KKAAAAAAAAKKK.", "..KAAAAAAAAAAAK.", ".KKAAEAAAAEAAKK.", ".KAAAWAAAWACCCK.", "..KKAABNNBACCK..", "...KABBNBBBCCK..", "...KKBBBBBBKKK..", "....KBBBBBBK....", "....KKBBBBKK....", ".....KKKKKK.....", "......WWWW......"]
+    }
+  ],
+  fish: [
+    {
+      stage: 1, name: "Minnow Scout", emoji: "🐟",
+      description: "A curious little fish exploring market waters.",
+      ability: { name: "Current Rider", desc: "+5% trade profit bonus", stat: "special", value: 0 },
+      requirements: { day: 7, health: 60, trust: 40 },
+      sprite: ["................", "................", "................", "....KKKK........", "...KKCCKKKK.KKK.", "..KKAAACAAKKKCK.", "..KAAAAAAAAKCKK.", ".KKAAAABAAACCKK.", ".KAAEAAAAAACCCK.", ".KKBAAABAAACCKK.", "..KAAAAAAAAKCKK.", "..KKAAAAAAKKKCK.", "...KKKKKKKK.KKK.", "................", "................", "................"]
+    },
+    {
+      stage: 2, name: "Tide Dancer", emoji: "🐠",
+      description: "A graceful fish riding market waves with ease.",
+      ability: { name: "Flow State", desc: "+15 energy cap", stat: "energy", value: 15 },
+      requirements: { day: 21, health: 70, trust: 60, happiness: 60 },
+      sprite: ["................", "................", "....KKKK........", "...KKCCKKKK.KKK.", "..KKAAACAAKKKCK.", "..KAAAAAAAAKCKK.", "..KAAAAAAAAKCKK.", ".KKAAAABAAACCKK.", ".KAAEAAAAAACCCK.", ".KKBAAABAAACCKK.", "..KAAAAAAAAKCKK.", "..KAAAAAAAAKCKK.", "..KKAAAAAAKKKCK.", "...KKKKKKKK.KKK.", "................", "................"]
+    },
+    {
+      stage: 3, name: "Abyssal Leviathan", emoji: "✨🐠",
+      description: "An ancient deep-sea legend commanding market tides.",
+      ability: { name: "Deep Wisdom", desc: "All stock prices visible +2 days", stat: "special", value: 0 },
+      requirements: { day: 45, health: 80, trust: 80, happiness: 70, ethicsScore: 50 },
+      sprite: ["................", "...WWWWWW.......", "...WKKCCKWWW.WW.", "..WKKAAACAAKWWCW", "..WKAAAAAAAAWCWW", "..KAAAAAAAAKCKK.", ".WKAAAAAAAAKCKK.", ".KKAWAABAWAACKK.", ".KAAEAAAAAACCCK.", ".KKBAAABAAACCKK.", "..KAAAAAAAAKCKK.", "..WKAAAAAAAAKCK.", "..WKKAAAAAAKKKCK", "...WKKKKKKKK.KKK", ".....WWWWWW.....", "................"]
+    }
+  ],
+  turtle: [
+    {
+      stage: 1, name: "Shell Sprout", emoji: "🐢",
+      description: "A patient turtle with a rock-solid foundation.",
+      ability: { name: "Hard Shell", desc: "-5 stress from market events", stat: "stress", value: -5 },
+      requirements: { day: 7, health: 60, trust: 40 },
+      sprite: ["................", "................", "................", "................", "....KKKKKKKK....", "..KKKCCCCCCKKK..", "..KCCAACCAACCK..", "..KCAAAAAAAACK..", "..KCAAAAAAAACK..", "..KCACAAAACACK..", ".KKCCAACCAACCKK.", ".KBBKCCCCCCKBBK.", ".KBBKKKBBKKKBBK.", ".KKKKKEBBEKKKKK.", ".....KKBBKK.....", "......KKKK......"]
+    },
+    {
+      stage: 2, name: "Reef Guardian", emoji: "🛡️🐢",
+      description: "A stalwart turtle shielding its portfolio from storms.",
+      ability: { name: "Stone Wall", desc: "Insurance costs 30% less", stat: "special", value: 0 },
+      requirements: { day: 21, health: 70, trust: 60, happiness: 60 },
+      sprite: ["................", "................", "................", "....KKKKKKKK....", "..KKKCCCCCCKKK..", "..KKKCCCCCCKKK..", "..KCCAACCAACCK..", "..KCAAAAAAAACK..", "..KCAAAAAAAACK..", "..KCAAAAAAAACK..", "..KCACAAAACACK..", ".KKCCAACCAACCKK.", ".KBBKCCCCCCKBBK.", ".KBBKKKBBKKKBBK.", ".KKKKKEBBEKKKKK.", "......KKKK......"]
+    },
+    {
+      stage: 3, name: "Ancient Tortoise", emoji: "✨🐢",
+      description: "A wise elder turtle whose patience transcends time.",
+      ability: { name: "Eternal Patience", desc: "All stats decay 30% slower", stat: "special", value: 0 },
+      requirements: { day: 45, health: 80, trust: 80, happiness: 70, ethicsScore: 50 },
+      sprite: ["......WWWW......", ".....WWWWWW.....", "....WKKKKKKW....", "...WKKKKKKKKKW..", "..WKKCCCCCCKKW..", "..KKKCCCCCCKKK..", "..KCCAACCAACCK..", "..KCAAWAAWAACK..", "..KCAAAAAAAACK..", "..KCAAAAAAAACK..", "..KCACAAAACACK..", ".KKCCAACCAACCKK.", ".KBBKCCCCCCKBBK.", ".KBBKKKBBKKKBBK.", ".KKKKKEBBEKKKKK.", "......WWWW......"]
+    }
+  ],
+  fox: [
+    {
+      stage: 1, name: "Sly Kit", emoji: "🦊",
+      description: "A cunning fox cub with a nose for deals.",
+      ability: { name: "Haggle", desc: "-10% care item costs", stat: "special", value: 0 },
+      requirements: { day: 7, health: 60, trust: 40 },
+      sprite: ["....KKK..KKK....", "..KKKAK..KAKKK..", "..KAAAK..KAAAK..", "..KAKAK..KAKAK..", "..KAAAKKKKAAAK..", "..KKKAAAAAAKKK..", "..KKAAAAAAAAKK..", "..KAAAAAAAAAAK..", "..KAAEAAAAEAAK..", "..KBAABBBBAABK..", "..KKABBBBBBAKK..", "...KKBBEEBBKK...", "....KBBBBBBK....", "....KKBBBBKK....", ".....KKKKKK.....", "................"]
+    },
+    {
+      stage: 2, name: "Trickster Fox", emoji: "🎭🦊",
+      description: "A wily fox exploiting market inefficiencies.",
+      ability: { name: "Market Trick", desc: "Random +$100 bonus each week", stat: "special", value: 0 },
+      requirements: { day: 21, health: 70, trust: 60, happiness: 60 },
+      sprite: ["...KKK....KKK...", "..KKKAK..KAKKK..", "..KAAAK..KAAAK..", "..KAKAK..KAKAK..", "..KAAAKKKKAAAK..", "..KKKAAAAAAKKK..", ".KKKAAAAAAAAKKK.", "..KAAAAAAAAAAK..", "..KAAEAAAAEAAK..", "..KBAABBBBAABK..", "..KKABBBBBBAKK..", "...KKBBEEBBKK...", "....KBBBBBBK....", "....KKBBBBKK....", ".....KKKKKK.....", "................"]
+    },
+    {
+      stage: 3, name: "Nine-Tail Oracle", emoji: "✨🦊",
+      description: "A legendary fox spirit whose tails foretell market fate.",
+      ability: { name: "Oracle Sight", desc: "All future events visible 3 days ahead", stat: "special", value: 0 },
+      requirements: { day: 45, health: 80, trust: 80, happiness: 70, ethicsScore: 50 },
+      sprite: ["..WKKK....KKKW..", "..KKKAK..KAKKK..", "..KAAAK..KAAAK..", "..KAKAK..KAKAK..", "..KAAAKKKKAAAK..", ".WKKKAAAAAAKKKW.", ".KKKAAAAAAAAKKK.", "..KAWAAAWAAAAK..", "..KAAEAAAAEAAK..", "..KBAABBBBAABK..", "..KKABBBBBBAKK..", "...KKBBEEBBKK...", "....KBBBBBBK....", "...WKKBBBBKKW...", "....WKKKKKW.....", "......WWWW......"]
+    }
+  ]
+};
+
+// Render a greyscale evolution sprite preview as a data URL.
+const _evoSpriteCache = {};
+const getEvolutionSpriteUrl = (breed, stageIdx) => {
+  const key = `${breed}_evo_${stageIdx}`;
+  if (!_evoSpriteCache[key]) {
+    const evoPath = EVOLUTION_PATHS[breed];
+    if (evoPath && evoPath[stageIdx]) {
+      _evoSpriteCache[key] = spriteFrameToDataUrl(evoPath[stageIdx].sprite, GREYSCALE_PALETTE);
+    } else {
+      _evoSpriteCache[key] = getGreyscaleSpriteFrame(breed, 0);
+    }
+  }
+  return _evoSpriteCache[key];
+};
+
+// Determine which evolution stages are unlocked for the current pet.
+const getEvolutionProgress = (pet, gameState) => {
+  const breed = pet.breed || "cat";
+  const path = EVOLUTION_PATHS[breed] || EVOLUTION_PATHS.cat;
+  const portfolioValue = gameState.stocks
+    ? gameState.stocks.reduce((sum, s) => sum + (s.owned * s.price), 0)
+    : 0;
+  const ethicsScore = gameState.ethicsScore || 0;
+
+  return path.map((evo, idx) => {
+    const reqs = evo.requirements;
+    const checks = {
+      day: { current: gameState.day, target: reqs.day, met: gameState.day >= reqs.day },
+      health: { current: Math.round(pet.health), target: reqs.health, met: pet.health >= reqs.health },
+      trust: { current: Math.round(pet.trust), target: reqs.trust, met: pet.trust >= reqs.trust },
+    };
+    if (reqs.happiness !== undefined) {
+      checks.happiness = { current: Math.round(pet.happiness), target: reqs.happiness, met: pet.happiness >= reqs.happiness };
+    }
+    if (reqs.ethicsScore !== undefined) {
+      checks.ethicsScore = { current: Math.round(ethicsScore), target: reqs.ethicsScore, met: ethicsScore >= reqs.ethicsScore };
+    }
+    const unlocked = Object.values(checks).every(c => c.met);
+    const overallProgress = Object.values(checks).reduce((sum, c) => sum + (c.met ? 1 : Math.min(1, c.current / c.target)), 0) / Object.keys(checks).length;
+    return { ...evo, checks, unlocked, overallProgress, index: idx };
+  });
+};
+
 const TUTORIAL_STEPS = [
   {
     id: "care",
@@ -863,8 +1129,8 @@ const getHelpResponse = (message, gameState) => {
 
   if (text.includes("evolve") || text.includes("evolution")) {
     return {
-      text: "Evolutions unlock after the early days. Your pet's health, trust, stress, ethics score, and finances shape the evolution title you earn.",
-      viewAction: { label: "Open Pet", view: "pet" }
+      text: "Evolutions unlock after the early days. Your pet's health, trust, stress, ethics score, and finances shape the evolution you earn. Check the Evolutions tab to see your path and progress!",
+      viewAction: { label: "Open Evolutions", view: "evolutions" }
     };
   }
 
@@ -884,8 +1150,8 @@ const getHelpResponse = (message, gameState) => {
 
   if (text.includes("badge") || text.includes("goal")) {
     return {
-      text: "Badges track responsibility milestones. Visit the Badges tab to see progress and rewards.",
-      viewAction: { label: "Open Badges", view: "badges" }
+      text: "Badges track responsibility milestones. Visit the Progress tab to see badges, daily tasks, and rewards.",
+      viewAction: { label: "Open Progress", view: "progress" }
     };
   }
 
@@ -925,7 +1191,7 @@ const getHelpResponse = (message, gameState) => {
   }
 
   return {
-    text: "I can help with pet care, trading, evolutions, badges, insurance, or timelines. Try one of the quick prompts below."
+    text: "I can help with pet care, trading, evolutions, progress & badges, insurance, or timelines. Try one of the quick prompts below."
   };
 };
 
@@ -2140,7 +2406,7 @@ export default function PawStreet() {
   const [gameState, setGameState] = useState(null);
   const [timelines, setTimelines] = useState([]);
   const [selectedTimeline, setSelectedTimeline] = useState(null);
-  const [view, setView] = useState("tutorial"); // market, portfolio, pet, tutorial, help, analytics, badges, timelines
+  const [view, setView] = useState("tutorial"); // market, portfolio, pet, tutorial, help, evolutions, progress, analytics, timelines
   const [actionLog, setActionLog] = useState([]);
   const [selectedAssetId, setSelectedAssetId] = useState(null);
   const [marketCategory, setMarketCategory] = useState("stocks");
@@ -3860,7 +4126,8 @@ export default function PawStreet() {
               { key: 'pet', label: 'Pet', icon: <Heart size={18} /> },
               { key: 'tutorial', label: 'Tutorial', icon: <Play size={18} /> },
               { key: 'help', label: 'Help', icon: <Brain size={18} /> },
-              { key: 'badges', label: 'Badges', icon: <BadgeIcon size={18} /> },
+              { key: 'evolutions', label: 'Evolutions', icon: <EvolutionIcon size={18} /> },
+              { key: 'progress', label: 'Progress', icon: <ShieldStar size={18} /> },
               { key: 'analytics', label: 'Analytics', icon: <BarChartIcon size={18} /> },
               { key: 'timelines', label: `Timelines (${timelines.length})`, icon: <Clock size={18} /> }
             ].map(item => (
@@ -4878,8 +5145,187 @@ export default function PawStreet() {
           />
         )}
 
-        {/* BADGES & GOALS VIEW */}
-        {view === "badges" && (
+        {/* EVOLUTIONS VIEW */}
+        {view === "evolutions" && gameState && (() => {
+          const breed = gameState.pet.breed || "cat";
+          const evoProgress = getEvolutionProgress(gameState.pet, gameState);
+          const currentStage = evoProgress.filter(e => e.unlocked).length;
+          return (
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2 space-y-4">
+                {/* Current Evolution Status */}
+                <div className="bg-black/40 backdrop-blur border border-purple-500/30 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-2xl font-bold text-purple-300">Evolution Path</h2>
+                    <div className="text-sm bg-purple-600/30 text-purple-200 px-3 py-1 rounded-full">
+                      {gameState.pet.evolution}
+                    </div>
+                  </div>
+                  <div className="text-sm text-slate-400 mb-4">
+                    {PET_BREEDS[breed]?.name || "Pet"} — Stage {currentStage}/3 unlocked
+                  </div>
+                  {/* Horizontal evolution timeline */}
+                  <div className="flex items-center gap-2 mb-2">
+                    {evoProgress.map((evo, idx) => (
+                      <React.Fragment key={idx}>
+                        {idx > 0 && (
+                          <div className={`flex-1 h-1 rounded-full ${evo.unlocked ? 'bg-purple-400' : 'bg-slate-700'}`} />
+                        )}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
+                          evo.unlocked
+                            ? 'bg-purple-600 border-purple-400 text-white'
+                            : 'bg-slate-800 border-slate-600 text-slate-500'
+                        }`}>
+                          {evo.stage}
+                        </div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Evolution Cards */}
+                {evoProgress.map((evo, idx) => (
+                  <div
+                    key={idx}
+                    className={`bg-black/40 backdrop-blur border rounded-lg p-6 transition-all ${
+                      evo.unlocked
+                        ? 'border-purple-500/50 shadow-lg shadow-purple-500/10'
+                        : 'border-slate-700/40 opacity-80'
+                    }`}
+                  >
+                    <div className="flex gap-6">
+                      {/* B&W Avatar Preview */}
+                      <div className="shrink-0 flex flex-col items-center gap-2">
+                        <div className={`rounded-xl p-3 ${
+                          evo.unlocked
+                            ? 'bg-slate-800 border-2 border-purple-400/50'
+                            : 'bg-slate-900 border-2 border-slate-700'
+                        }`}>
+                          <img
+                            src={getEvolutionSpriteUrl(breed, idx)}
+                            alt={`${evo.name} preview`}
+                            width={80}
+                            height={80}
+                            style={{ imageRendering: "pixelated", filter: evo.unlocked ? "none" : "contrast(0.8) brightness(0.7)" }}
+                            draggable={false}
+                          />
+                        </div>
+                        <div className={`text-xs font-bold ${evo.unlocked ? 'text-purple-300' : 'text-slate-500'}`}>
+                          Stage {evo.stage}
+                        </div>
+                      </div>
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className={`text-lg font-bold ${evo.unlocked ? 'text-purple-200' : 'text-slate-400'}`}>
+                            {evo.emoji} {evo.name}
+                          </h3>
+                          {evo.unlocked && <span className="text-xs bg-green-600/30 text-green-300 px-2 py-0.5 rounded-full">Unlocked</span>}
+                        </div>
+                        <p className="text-sm text-slate-400 mb-3">{evo.description}</p>
+
+                        {/* Ability */}
+                        <div className={`rounded-lg p-3 mb-3 ${
+                          evo.unlocked ? 'bg-purple-900/30 border border-purple-500/30' : 'bg-slate-900/30 border border-slate-700/30'
+                        }`}>
+                          <div className="text-xs text-slate-500 mb-0.5">Ability</div>
+                          <div className={`text-sm font-bold ${evo.unlocked ? 'text-purple-300' : 'text-slate-400'}`}>
+                            {evo.ability.name}
+                          </div>
+                          <div className="text-xs text-slate-400">{evo.ability.desc}</div>
+                        </div>
+
+                        {/* Requirement Progress Bars */}
+                        <div className="space-y-2">
+                          {Object.entries(evo.checks).map(([key, check]) => {
+                            const pct = Math.min(100, (check.current / check.target) * 100);
+                            const label = key === "ethicsScore" ? "Ethics" : key.charAt(0).toUpperCase() + key.slice(1);
+                            return (
+                              <div key={key}>
+                                <div className="flex justify-between text-xs mb-0.5">
+                                  <span className={check.met ? 'text-green-400' : 'text-slate-400'}>
+                                    {label}
+                                  </span>
+                                  <span className={check.met ? 'text-green-400' : 'text-slate-500'}>
+                                    {check.current}/{check.target} {check.met ? '✓' : ''}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-slate-800 rounded-full h-2">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${
+                                      check.met ? 'bg-green-500' : 'bg-purple-500/70'
+                                    }`}
+                                    style={{ width: `${Math.max(2, pct)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Sidebar: Current pet + overall progress */}
+              <div className="col-span-1 space-y-4">
+                <div className="bg-black/40 backdrop-blur border border-cyan-500/30 rounded-lg p-4">
+                  <h3 className="text-sm font-bold text-cyan-300 mb-3">Current Pet</h3>
+                  <div className="flex justify-center mb-3">
+                    <PetSprite breed={breed} size={72} />
+                  </div>
+                  <div className="text-center text-sm font-bold text-slate-200 mb-1">{gameState.pet.name}</div>
+                  <div className="text-center text-xs text-purple-400 mb-3">{gameState.pet.evolution}</div>
+                  <div className="space-y-1 text-xs">
+                    <StatMini label="Health" value={gameState.pet.health} />
+                    <StatMini label="Trust" value={gameState.pet.trust} />
+                    <StatMini label="Happiness" value={gameState.pet.happiness} />
+                    <StatMini label="Day" value={gameState.day} />
+                  </div>
+                </div>
+
+                <div className="bg-black/40 backdrop-blur border border-purple-500/30 rounded-lg p-4">
+                  <h3 className="text-sm font-bold text-purple-300 mb-3">Overall Progress</h3>
+                  <div className="text-3xl font-bold text-center text-purple-400 mb-2">
+                    {currentStage}/3
+                  </div>
+                  <div className="text-xs text-slate-400 text-center mb-3">Evolutions Unlocked</div>
+                  <div className="w-full bg-slate-800 rounded-full h-3 mb-2">
+                    <div
+                      className="h-3 rounded-full bg-gradient-to-r from-purple-500 to-fuchsia-500 transition-all"
+                      style={{ width: `${(currentStage / 3) * 100}%` }}
+                    />
+                  </div>
+                  {currentStage < 3 && (
+                    <div className="mt-3 text-xs text-slate-400">
+                      <div className="font-bold text-slate-300 mb-1">Next: {evoProgress[currentStage]?.name}</div>
+                      <div>Overall readiness: {(evoProgress[currentStage]?.overallProgress * 100).toFixed(0)}%</div>
+                    </div>
+                  )}
+                  {currentStage === 3 && (
+                    <div className="mt-3 text-xs text-center text-fuchsia-300 font-bold">
+                      All evolutions unlocked!
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-black/40 backdrop-blur border border-slate-700/30 rounded-lg p-4">
+                  <h3 className="text-sm font-bold text-slate-300 mb-2">Tips</h3>
+                  <ul className="text-[10px] text-slate-400 space-y-1 list-disc list-inside">
+                    <li>Keep health and trust high to evolve faster</li>
+                    <li>Ethics score matters for the final evolution</li>
+                    <li>Each stage unlocks a unique ability</li>
+                    <li>B&W previews show what your pet will become</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* PROGRESS VIEW (Responsibility, Daily Tasks, Badges, Insurance) */}
+        {view === "progress" && (
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2 space-y-4">
               <div className="bg-black/40 backdrop-blur border border-emerald-500/30 rounded-lg p-6">
